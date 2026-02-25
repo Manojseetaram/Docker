@@ -1,38 +1,22 @@
-use tauri::State;
-use crate::state::AppState;
 use crate::services::container_service;
+use crate::models::container::Container;
 
 #[tauri::command]
-pub fn list_containers(state: State<AppState>) 
-    -> Vec<crate::models::container::Container> 
-{
-    container_service::list_containers(&state)
+pub fn list_containers() -> Result<Vec<Container>, String> {
+    container_service::list_containers()
 }
 
 #[tauri::command]
-pub fn create_container(
-    state: State<AppState>,
-    name: String,
-    image: String,
-) -> crate::models::container::Container 
-{
-    container_service::create_container(&state, name, image)
+pub fn start_container(name: String) -> Result<String, String> {
+    container_service::start_container(name)
 }
 
 #[tauri::command]
-pub fn start_container(
-    state: State<AppState>,
-    id: String,
-) -> Result<String, String> 
-{
-    container_service::start_container(&state, id)
+pub fn stop_container(name: String) -> Result<String, String> {
+    container_service::stop_container(name)
 }
 
 #[tauri::command]
-pub fn stop_container(
-    state: State<AppState>,
-    id: String,
-) -> Result<String, String> 
-{
-    container_service::stop_container(&state, id)
+pub fn remove_container(name: String) -> Result<String, String> {
+    container_service::remove_container(name)
 }

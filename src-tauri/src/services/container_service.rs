@@ -1,46 +1,71 @@
-use uuid::Uuid;
+use std::process::Command;
 use crate::models::container::Container;
-use crate::state::AppState;
 
-pub fn list_containers(state: &AppState) -> Vec<Container> {
-    state.containers.lock().unwrap().clone()
-}
+pub fn list_containers() -> Result<Vec<Container>, String> {
 
-pub fn create_container(
-    state: &AppState,
-    name: String,
-    image: String,
-) -> Container {
+    let output = Command::new("docker")
+        .args(["ps", "-a", "--format", "{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}"])
+        .output()
+        .map_err(|e| e.to_string())?;
 
-    let container = Container {
-        id: Uuid::new_v4().to_string(),
-        name,
-        image,
-        status: "created".into(),
-    };
-
-    state.containers.lock().unwrap().push(container.clone());
-    container
-}
-
-pub fn start_container(state: &AppState, id: String) -> Result<String, String> {
-    let mut containers = state.containers.lock().unwrap();
-
-    if let Some(container) = containers.iter_mut().find(|c| c.id == id) {
-        container.status = "running".into();
-        return Ok("Container started".into());
+    if !output.status.success() {
+        return Err("Failed to fetch containers".into());
     }
 
-    Err("Container not found".into())
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    let containers = stdout
+        .lines()
+        .map(|line| {
+            let parts: Vec<&str> = line.split('|').collect();
+
+            Container {
+                id: parts[0].to_string(),
+                name: parts[1].to_string(),
+                image: parts[2].to_string(),
+                status: parts[3].to_string(),
+            }
+        })
+        .collect();
+
+    Ok(containers)
 }
 
-pub fn stop_container(state: &AppState, id: String) -> Result<String, String> {
-    let mut containers = state.containers.lock().unwrap();
+pub fn start_container(name: String) -> Result<String, String> {
+    let output = Command::new("docker")
+        .args(["start", &name])
+        .output()
+        .map_err(|e| e.to_string())?;
 
-    if let Some(container) = containers.iter_mut().find(|c| c.id == id) {
-        container.status = "stopped".into();
-        return Ok("Container stopped".into());
+    if output.status.success() {
+        Ok("Container started".into())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).to_string())
     }
+}
 
-    Err("Container not found".into())
+pub fn stop_container(name: String) -> Result<String, String> {
+    let output = Command::new("docker")
+        .args(["stop", &name])
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if output.status.success() {
+        Ok("Container stopped".into())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).to_string())
+    }
+}
+
+pub fn remove_container(name: String) -> Result<String, String> {
+    let output = Command::new("docker")
+        .args(["rm", &name])
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if output.status.success() {
+        Ok("Container removed".into())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).to_string())
+    }
 }
