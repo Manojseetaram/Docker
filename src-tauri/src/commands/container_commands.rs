@@ -20,3 +20,13 @@ pub fn stop_container(name: String) -> Result<String, String> {
 pub fn remove_container(name: String) -> Result<String, String> {
     container_service::remove_container(name)
 }
+
+#[tauri::command]
+pub fn run_container(
+    image: String,
+    name: Option<String>,
+    ports: Option<String>,
+    cmd: Option<String>,
+) -> Result<String, String> {
+    container_service::run_container(image, name, ports, cmd)
+}

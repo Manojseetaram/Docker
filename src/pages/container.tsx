@@ -1,3 +1,7 @@
+// ⚠️ IMPORTANT: Save this file as "Containers.tsx" (capital C) to match the import in App.tsx
+// The original file was named "container.tsx" (lowercase) which caused the Images page routing to break
+// because React's switch/case falls through on import errors
+
 import { useMemo, useState } from "react";
 import { useApp } from "../store/AppContext";
 import NewContainerModal from "../components/NewContainerModal";
@@ -22,11 +26,7 @@ export default function Containers() {
   const handleToggle = async (id: string, status: string) => {
     setLoadingId(id);
     try {
-      if (status === "running") {
-        await stopContainer(id);
-      } else {
-        await startContainer(id);
-      }
+      status === "running" ? await stopContainer(id) : await startContainer(id);
     } finally {
       setLoadingId(null);
     }
@@ -41,94 +41,190 @@ export default function Containers() {
     }
   };
 
+  const runningCount = containers.filter(c => c.status === "running").length;
+
   return (
     <>
       {showModal && <NewContainerModal onClose={() => setShowModal(false)} />}
 
-      <div className="space-y-6">
+      <div className="space-y-7 max-w-5xl">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white" style={{fontFamily:'monospace'}}>Containers</h1>
-            <p className="text-xs font-mono text-zinc-500 mt-1">{containers.length} total</p>
+            <div className="flex items-center gap-2 mb-1">
+              <span
+                className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full"
+                style={{ background: "#eff6ff", color: "#2563eb" }}
+              >
+                CONTAINERS
+              </span>
+              <span
+                className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full"
+                style={{ background: "#f0fdf4", color: "#16a34a" }}
+              >
+                {runningCount} RUNNING
+              </span>
+            </div>
+            <h1
+              className="text-[28px] font-black text-black tracking-tight leading-none"
+              style={{ fontFamily: "Syne, sans-serif" }}
+            >
+              Containers
+            </h1>
+            <p className="text-[12px] font-mono mt-1.5" style={{ color: "#93c5fd" }}>
+              {containers.length} total · {runningCount} active
+            </p>
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-mono font-bold hover:bg-red-400 transition-all"
-            style={{boxShadow:'0 0 20px rgba(239,68,68,0.25)'}}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-mono font-black text-white transition-all"
+            style={{
+              background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+              boxShadow: "0 4px 14px rgba(37,99,235,0.35)",
+            }}
+            onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 6px 20px rgba(37,99,235,0.5)"}
+            onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 4px 14px rgba(37,99,235,0.35)"}
           >
-            + New Container
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            New Container
           </button>
         </div>
 
-        {/* Filters + Search */}
+        {/* Toolbar */}
         <div className="flex items-center gap-3">
-          {(["all", "running", "stopped"] as const).map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono border transition-all ${
-                filter === f
-                  ? "border-red-500/40 text-red-400 bg-red-500/10"
-                  : "border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
-              }`}
+          <div className="flex items-center gap-1.5 p-1 rounded-xl" style={{ background: "#f0f7ff" }}>
+            {(["all", "running", "stopped"] as const).map(f => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className="px-3.5 py-1.5 rounded-lg text-[11px] font-mono font-bold capitalize transition-all"
+                style={
+                  filter === f
+                    ? { background: "white", color: "#2563eb", boxShadow: "0 1px 6px rgba(37,99,235,0.15)" }
+                    : { color: "#93c5fd", background: "transparent" }
+                }
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+          <div className="relative ml-auto">
+            <svg
+              className="absolute left-3.5 top-1/2 -translate-y-1/2"
+              width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" strokeWidth="2.5" strokeLinecap="round"
             >
-              {f}
-            </button>
-          ))}
-          <input
-            type="text"
-            placeholder="Search containers..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="ml-auto bg-[#0f0f0f] border border-[#1f1f1f] rounded-lg px-3 py-1.5 text-sm text-white font-mono focus:border-red-500/40 focus:outline-none placeholder-zinc-600 w-52 transition-colors"
-          />
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+              type="text"
+              placeholder="Search containers..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="rounded-xl px-4 py-2 pl-9 text-[12px] text-black font-mono focus:outline-none transition-all w-52"
+              style={{ background: "white", border: "1.5px solid #dbeafe" }}
+              onFocus={e => (e.target as HTMLInputElement).style.borderColor = "#2563eb"}
+              onBlur={e => (e.target as HTMLInputElement).style.borderColor = "#dbeafe"}
+            />
+          </div>
         </div>
 
         {/* Table */}
-        <div className="bg-[#0f0f0f] border border-[#1f1f1f] rounded-xl overflow-hidden">
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{ border: "1px solid #e8f0fe", boxShadow: "0 1px 20px rgba(37,99,235,0.05)" }}
+        >
           <table className="w-full text-sm font-mono">
-            <thead className="bg-[#0a0a0a] text-zinc-500 text-xs border-b border-[#1f1f1f]">
+            <thead style={{ background: "#f8faff", borderBottom: "1px solid #e8f0fe" }}>
               <tr>
-                <th className="px-4 py-3 text-left">Name</th>
-                <th className="px-4 py-3 text-left">Image</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">ID</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+                {["Container", "Image", "Status", "ID", "Actions"].map((h, i) => (
+                  <th
+                    key={i}
+                    className={`px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest ${i === 4 ? "text-right" : "text-left"}`}
+                    style={{ color: "#60a5fa" }}
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody>
-              {visible.map(c => (
-                <tr key={c.id} className="border-t border-[#1a1a1a] hover:bg-zinc-900/20 transition-colors">
-                  <td className="px-4 py-3 text-white font-semibold">{c.name}</td>
-                  <td className="px-4 py-3 text-zinc-400">{c.image}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-1 rounded border font-mono ${
-                      c.status === "running"
-                        ? "bg-emerald-400/10 text-emerald-400 border-emerald-400/20"
-                        : "bg-yellow-400/10 text-yellow-400 border-yellow-400/20"
-                    }`}>
-                      {c.status}
+            <tbody style={{ background: "white" }}>
+              {visible.map((c, idx) => (
+                <tr
+                  key={c.id}
+                  className="transition-colors"
+                  style={{ borderTop: idx === 0 ? "none" : "1px solid #f0f7ff" }}
+                  onMouseEnter={e => (e.currentTarget as HTMLTableRowElement).style.background = "#fafcff"}
+                  onMouseLeave={e => (e.currentTarget as HTMLTableRowElement).style.background = "white"}
+                >
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{
+                          background: c.status === "running" ? "#22c55e" : "#fbbf24",
+                          boxShadow: c.status === "running" ? "0 0 6px rgba(34,197,94,0.5)" : "0 0 6px rgba(251,191,36,0.4)",
+                        }}
+                      />
+                      <span className="text-black font-bold text-[13px]">{c.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5 text-[12px]" style={{ color: "#60a5fa" }}>
+                    {c.image}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span
+                      className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full"
+                      style={
+                        c.status === "running"
+                          ? { background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0" }
+                          : { background: "#fffbeb", color: "#b45309", border: "1px solid #fde68a" }
+                      }
+                    >
+                      ● {c.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-zinc-600 text-xs">{c.id.slice(0, 12)}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-5 py-3.5">
+                    <span
+                      className="text-[11px] font-mono px-2 py-0.5 rounded-lg"
+                      style={{ background: "#f8faff", color: "#93c5fd" }}
+                    >
+                      {c.id.slice(0, 12)}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => handleToggle(c.id, c.status)}
                         disabled={loadingId === c.id}
-                        className={`px-3 py-1 rounded text-xs font-mono border transition-all disabled:opacity-40 ${
+                        className="text-[11px] font-mono font-bold px-3 py-1.5 rounded-lg transition-all disabled:opacity-40"
+                        style={
                           c.status === "running"
-                            ? "border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
-                            : "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
-                        }`}
+                            ? { border: "1.5px solid #fde68a", color: "#b45309", background: "white" }
+                            : { border: "1.5px solid #bbf7d0", color: "#16a34a", background: "white" }
+                        }
+                        onMouseEnter={e => {
+                          (e.currentTarget as HTMLButtonElement).style.background =
+                            c.status === "running" ? "#fffbeb" : "#f0fdf4";
+                        }}
+                        onMouseLeave={e => {
+                          (e.currentTarget as HTMLButtonElement).style.background = "white";
+                        }}
                       >
-                        {loadingId === c.id ? "..." : c.status === "running" ? "Stop" : "Start"}
+                        {loadingId === c.id ? "…" : c.status === "running" ? "Stop" : "Start"}
                       </button>
                       <button
                         onClick={() => handleRemove(c.id)}
                         disabled={loadingId === c.id}
-                        className="px-3 py-1 rounded text-xs font-mono border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all disabled:opacity-40"
+                        className="text-[11px] font-mono font-bold px-3 py-1.5 rounded-lg transition-all disabled:opacity-40"
+                        style={{ border: "1.5px solid #fecaca", color: "#ef4444", background: "white" }}
+                        onMouseEnter={e => {
+                          (e.currentTarget as HTMLButtonElement).style.background = "#fff1f2";
+                        }}
+                        onMouseLeave={e => {
+                          (e.currentTarget as HTMLButtonElement).style.background = "white";
+                        }}
                       >
                         Remove
                       </button>
@@ -139,8 +235,14 @@ export default function Containers() {
 
               {visible.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="text-center py-10 text-zinc-600 font-mono">
-                    No containers found
+                  <td colSpan={5} className="text-center py-14">
+                    <div className="text-[32px] mb-3">📦</div>
+                    <p className="text-[13px] font-mono font-bold" style={{ color: "#93c5fd" }}>
+                      {search ? "No containers match your search" : "No containers found"}
+                    </p>
+                    <p className="text-[11px] font-mono mt-1" style={{ color: "#bfdbfe" }}>
+                      Create a new container to get started
+                    </p>
                   </td>
                 </tr>
               )}

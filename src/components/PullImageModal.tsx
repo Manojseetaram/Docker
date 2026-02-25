@@ -3,88 +3,206 @@ import { useApp } from "../store/AppContext";
 
 interface Props { onClose: () => void; }
 
-const POPULAR = ["nginx:latest", "ubuntu:22.04", "postgres:16", "redis:7-alpine", "node:20-alpine", "python:3.12-slim", "golang:1.22", "alpine:3.19", "mysql:8", "mongo:7"];
+const POPULAR = [
+  "nginx:latest", "ubuntu:22.04", "postgres:16", "redis:7-alpine",
+  "node:20-alpine", "python:3.12-slim", "golang:1.22", "alpine:3.19",
+  "mysql:8", "mongo:7",
+];
 
 export default function PullImageModal({ onClose }: Props) {
   const { pullImage } = useApp();
   const [input, setInput] = useState("");
   const [pulling, setPulling] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [done, setDone] = useState(false);
+  const [currentImage, setCurrentImage] = useState("");
+  const [error, setError] = useState("");
 
   const handlePull = async (imageStr?: string) => {
     const raw = (imageStr ?? input).trim();
     if (!raw) return;
     const [repo, tag = "latest"] = raw.includes(":") ? raw.split(":") : [raw, "latest"];
+
+    setCurrentImage(raw);
     setPulling(true);
     setProgress(0);
-    for (let i = 0; i <= 100; i += Math.floor(Math.random() * 15 + 5)) {
-      await new Promise(r => setTimeout(r, 120));
-      setProgress(Math.min(i, 100));
+    setError("");
+
+    try {
+      for (let i = 0; i <= 90; i += Math.floor(Math.random() * 15 + 5)) {
+        await new Promise(r => setTimeout(r, 180));
+        setProgress(Math.min(i, 90));
+      }
+      await pullImage(repo, tag);
+      setProgress(100);
+      await new Promise(r => setTimeout(r, 600));
+      onClose();
+    } catch {
+      setError(`Failed to pull ${raw}. Check the image name and try again.`);
+      setPulling(false);
     }
-    setProgress(100);
-    pullImage(repo, tag);
-    setDone(true);
-    await new Promise(r => setTimeout(r, 800));
-    onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={!pulling ? onClose : undefined} />
-      <div className="relative z-10 w-full max-w-md bg-[#111418] border border-[#2e3a4e] rounded-2xl shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#232a36] bg-[#0d1017]">
+      <div
+        className="absolute inset-0"
+        style={{ background: "rgba(15,23,42,0.4)", backdropFilter: "blur(6px)" }}
+        onClick={!pulling ? onClose : undefined}
+      />
+      <div
+        className="relative z-10 w-full max-w-md"
+        style={{
+          background: "white",
+          borderRadius: "24px",
+          boxShadow: "0 25px 60px rgba(37,99,235,0.15), 0 4px 20px rgba(0,0,0,0.08)",
+          border: "1px solid #e8f0fe",
+          overflow: "hidden",
+        }}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center justify-between px-7 py-5"
+          style={{ borderBottom: "1px solid #eef3ff", background: "#fafcff" }}
+        >
           <div>
-            <h2 className="text-white font-bold text-lg" style={{ fontFamily: 'Syne, sans-serif' }}>Pull Image</h2>
-            <p className="text-[#445060] text-xs font-mono mt-0.5">manoj-docker pull &lt;image:tag&gt;</p>
+            <div className="flex items-center gap-2 mb-1">
+              <span
+                className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full"
+                style={{ background: "#eff6ff", color: "#2563eb" }}
+              >
+                DOCKER HUB
+              </span>
+            </div>
+            <h2 className="text-[18px] font-black text-black" style={{ fontFamily: "Syne, sans-serif" }}>
+              Pull Image
+            </h2>
           </div>
-          {!pulling && <button onClick={onClose} className="text-[#445060] hover:text-white transition-colors text-xl">✕</button>}
+          {!pulling && (
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-full transition-all"
+              style={{ border: "1.5px solid #dbeafe", color: "#64748b" }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "#2563eb";
+                (e.currentTarget as HTMLButtonElement).style.color = "#2563eb";
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "#dbeafe";
+                (e.currentTarget as HTMLButtonElement).style.color = "#64748b";
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          )}
         </div>
 
-        <div className="px-6 py-5 space-y-5">
+        {/* Body */}
+        <div className="px-7 py-6 space-y-5">
+          {/* Input */}
           <div>
-            <label className="block text-xs font-mono text-[#7a8a9e] mb-1.5 uppercase tracking-widest">Image Name</label>
-            <div className="flex gap-2">
+            <label className="block text-[10px] font-mono font-bold uppercase tracking-widest mb-2" style={{ color: "#60a5fa" }}>
+              Image Name
+            </label>
+            <div className="flex gap-2.5">
               <input
                 disabled={pulling}
                 type="text"
-                placeholder="e.g. nginx:latest"
+                placeholder="nginx:latest"
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handlePull()}
-                className="flex-1 bg-[#0a0c10] border border-[#232a36] rounded-lg px-3 py-2.5 text-white text-sm font-mono focus:border-[#00d4ff] focus:outline-none placeholder-[#445060] disabled:opacity-50"
+                className="flex-1 rounded-xl px-4 py-2.5 text-[13px] font-mono text-black focus:outline-none transition-all disabled:opacity-50"
+                style={{ background: "white", border: "1.5px solid #dbeafe" }}
+                onFocus={e => (e.target as HTMLInputElement).style.borderColor = "#2563eb"}
+                onBlur={e => (e.target as HTMLInputElement).style.borderColor = "#dbeafe"}
               />
               <button
                 onClick={() => handlePull()}
                 disabled={pulling || !input.trim()}
-                className="px-4 py-2.5 rounded-lg bg-[#00d4ff] text-black text-sm font-mono font-bold hover:bg-[#22dcff] disabled:opacity-40 transition-all"
+                className="px-5 py-2.5 rounded-xl text-[13px] font-mono font-black text-white transition-all disabled:opacity-40"
+                style={{
+                  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+                  boxShadow: "0 4px 14px rgba(37,99,235,0.35)",
+                }}
               >
                 Pull
               </button>
             </div>
           </div>
 
+          {/* Progress */}
           {pulling && (
-            <div>
-              <div className="flex justify-between text-xs font-mono mb-2">
-                <span className="text-[#7a8a9e]">{done ? "Complete!" : "Downloading layers..."}</span>
-                <span className="text-[#00d4ff]">{progress}%</span>
+            <div
+              className="p-4 rounded-xl"
+              style={{ background: "#f8faff", border: "1px solid #dbeafe" }}
+            >
+              <div className="flex justify-between items-center mb-3">
+                <div>
+                  <div className="text-[11px] font-mono font-bold text-black">Pulling {currentImage}</div>
+                  <div className="text-[10px] font-mono mt-0.5" style={{ color: "#93c5fd" }}>
+                    Downloading layers from Docker Hub…
+                  </div>
+                </div>
+                <span
+                  className="text-[16px] font-black font-mono"
+                  style={{ color: "#2563eb" }}
+                >
+                  {progress}%
+                </span>
               </div>
-              <div className="h-1.5 bg-[#1e2430] rounded-full overflow-hidden">
-                <div className="h-full bg-[#00d4ff] rounded-full transition-all duration-200" style={{ width: `${progress}%` }} />
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#dbeafe" }}>
+                <div
+                  className="h-full rounded-full transition-all duration-200"
+                  style={{
+                    width: `${progress}%`,
+                    background: progress === 100
+                      ? "linear-gradient(90deg, #22c55e, #16a34a)"
+                      : "linear-gradient(90deg, #2563eb, #60a5fa)",
+                  }}
+                />
               </div>
             </div>
           )}
 
+          {/* Error */}
+          {error && (
+            <div
+              className="text-[12px] font-mono px-4 py-3 rounded-xl"
+              style={{ background: "#fff1f2", color: "#ef4444", border: "1px solid #fecaca" }}
+            >
+              {error}
+            </div>
+          )}
+
+          {/* Popular */}
           {!pulling && (
             <div>
-              <p className="text-xs font-mono text-[#445060] mb-2 uppercase tracking-widest">Popular Images</p>
+              <p className="text-[10px] font-mono font-bold uppercase tracking-widest mb-3" style={{ color: "#60a5fa" }}>
+                Popular Images
+              </p>
               <div className="flex flex-wrap gap-2">
                 {POPULAR.map(img => (
                   <button
                     key={img}
                     onClick={() => { setInput(img); handlePull(img); }}
-                    className="text-xs font-mono px-2.5 py-1.5 rounded-lg bg-[#0a0c10] border border-[#232a36] text-[#7a8a9e] hover:border-[#00d4ff] hover:text-[#00d4ff] transition-colors"
+                    className="text-[11px] font-mono font-bold px-3 py-1.5 rounded-lg transition-all"
+                    style={{
+                      background: "white",
+                      border: "1.5px solid #dbeafe",
+                      color: "#0f172a",
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff";
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = "#2563eb";
+                      (e.currentTarget as HTMLButtonElement).style.color = "#2563eb";
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLButtonElement).style.background = "white";
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = "#dbeafe";
+                      (e.currentTarget as HTMLButtonElement).style.color = "#0f172a";
+                    }}
                   >
                     {img}
                   </button>

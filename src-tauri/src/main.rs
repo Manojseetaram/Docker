@@ -16,7 +16,7 @@ fn main() {
     start_container,
     stop_container,
     remove_container,   
-
+run_container,
     list_images,
     pull_image,
     remove_image,   
@@ -29,4 +29,5 @@ fn main() {
 ])
         .run(tauri::generate_context!())
         .expect("error while running app");
-}
+
+    }

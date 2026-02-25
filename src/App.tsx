@@ -1,15 +1,16 @@
-
 import "./App.css";
-
 import { useState } from "react";
-import { AppProvider, useApp } from "./store/AppContext"
+import { AppProvider, useApp } from "./store/AppContext";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 
-import Images from "./pages/Images";
 import Logs from "./pages/Logs";
 import Terminal from "./pages/Terminal";
 import Containers from "./pages/container";
+import Images from "./pages/Images";
+
+
+
 
 export type Page = "dashboard" | "containers" | "images" | "logs" | "terminal";
 
@@ -25,11 +26,18 @@ function AppShell() {
       case "images":     return <Images />;
       case "logs":       return <Logs />;
       case "terminal":   return <Terminal />;
+      default:           return <Dashboard />; 
     }
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0a0c10]" style={{fontFamily:'Syne,sans-serif'}}>
+    <div
+      className="flex h-screen overflow-hidden"
+      style={{
+        fontFamily: "Syne, sans-serif",
+        background: "linear-gradient(135deg, #f0f7ff 0%, #ffffff 50%, #f8faff 100%)",
+      }}
+    >
       <Sidebar
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}

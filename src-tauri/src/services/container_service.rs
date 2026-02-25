@@ -69,3 +69,43 @@ pub fn remove_container(name: String) -> Result<String, String> {
         Err(String::from_utf8_lossy(&output.stderr).to_string())
     }
 }
+
+pub fn run_container(
+    image: String,
+    name: Option<String>,
+    ports: Option<String>,
+    cmd: Option<String>,
+) -> Result<String, String> {
+
+    let mut args: Vec<String> = vec!["run".into(), "-d".into()];
+
+    // Container name
+    if let Some(n) = name {
+        args.push("--name".into());
+        args.push(n);
+    }
+
+    // Port mapping (example: "8080:80")
+    if let Some(p) = ports {
+        args.push("-p".into());
+        args.push(p);
+    }
+
+    args.push(image);
+
+    // Custom command
+    if let Some(c) = cmd {
+        args.push(c);
+    }
+
+    let output = Command::new("docker")
+        .args(&args)
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if output.status.success() {
+        Ok("Container started successfully".into())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).to_string())
+    }
+}
