@@ -33,24 +33,25 @@ const navItems: { id: Page; label: string; icon: JSX.Element }[] = [
 
 export default function Sidebar({ currentPage, setCurrentPage, containerCount, runningCount }: Props) {
   return (
-    <aside className="w-[220px] min-w-[220px] bg-[#0d1017] border-r border-[#232a36] flex flex-col py-5 px-3">
-      <div className="flex items-center gap-3 px-2 pb-5 mb-4 border-b border-[#232a36]">
-        <div className="w-9 h-9 rounded-xl bg-cyan-400/10 border border-cyan-400/25 flex items-center justify-center flex-shrink-0">
+    <aside className="w-[220px] min-w-[220px] bg-[#0a0a0a] border-r border-[#1f1f1f] flex flex-col py-5 px-3">
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-2 pb-5 mb-4 border-b border-[#1f1f1f]">
+        <div className="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center flex-shrink-0">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <rect x="2" y="8" width="5" height="5" rx="1" fill="#00d4ff"/>
-            <rect x="9" y="8" width="5" height="5" rx="1" fill="#00d4ff"/>
-            <rect x="16" y="8" width="5" height="5" rx="1" fill="#00d4ff" opacity="0.5"/>
-            <rect x="2" y="15" width="5" height="5" rx="1" fill="#00d4ff" opacity="0.4"/>
-            <rect x="9" y="15" width="5" height="5" rx="1" fill="#00d4ff"/>
+            <rect x="2" y="8" width="5" height="5" rx="1" fill="#ef4444"/>
+            <rect x="9" y="8" width="5" height="5" rx="1" fill="#ef4444"/>
+            <rect x="16" y="8" width="5" height="5" rx="1" fill="#ef4444" opacity="0.5"/>
+            <rect x="2" y="15" width="5" height="5" rx="1" fill="#ef4444" opacity="0.4"/>
+            <rect x="9" y="15" width="5" height="5" rx="1" fill="#eab308"/>
           </svg>
         </div>
         <div>
-          <div className="text-white font-extrabold text-sm leading-tight tracking-tight" style={{fontFamily:'Syne,sans-serif'}}>ManojDocker</div>
-          <div className="text-slate-600 font-mono text-[10px]">v0.1.0-alpha</div>
+          <div className="text-white font-extrabold text-sm leading-tight tracking-tight" style={{fontFamily:'monospace'}}>ManojDocker</div>
+          <div className="text-zinc-600 font-mono text-[10px]">v0.1.0-alpha</div>
         </div>
       </div>
 
-      <div className="text-slate-600 font-mono text-[9px] tracking-[1.5px] uppercase px-2 mb-2">Navigate</div>
+      <div className="text-zinc-600 font-mono text-[9px] tracking-[1.5px] uppercase px-2 mb-2">Navigate</div>
 
       <nav className="flex flex-col gap-0.5 flex-1">
         {navItems.map((item) => {
@@ -60,30 +61,33 @@ export default function Sidebar({ currentPage, setCurrentPage, containerCount, r
               key={item.id}
               onClick={() => setCurrentPage(item.id)}
               className={`group flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-[13px] font-semibold transition-all relative text-left ${
-                active ? "bg-cyan-400/10 text-cyan-400" : "text-slate-500 hover:bg-slate-800/50 hover:text-slate-200"
+                active
+                  ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                  : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200 border border-transparent"
               }`}
-              style={{fontFamily:'Syne,sans-serif'}}
+              style={{fontFamily:'monospace'}}
             >
-              <span className={active ? "text-cyan-400" : "text-slate-600 group-hover:text-slate-400"}>{item.icon}</span>
+              <span className={active ? "text-red-400" : "text-zinc-600 group-hover:text-zinc-400"}>{item.icon}</span>
               {item.label}
               {item.id === "containers" && (
-                <span className="ml-auto text-[10px] font-mono bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded">{containerCount}</span>
+                <span className="ml-auto text-[10px] font-mono bg-zinc-900 text-zinc-500 px-1.5 py-0.5 rounded">{containerCount}</span>
               )}
               {active && (
-                <span className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-cyan-400 rounded-l-full" style={{boxShadow:'0 0 8px rgba(0,212,255,0.6)'}} />
+                <span className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-red-500 rounded-l-full" style={{boxShadow:'0 0 8px rgba(239,68,68,0.6)'}} />
               )}
             </button>
           );
         })}
       </nav>
 
-      <div className="mt-4 pt-4 border-t border-[#232a36] px-2 space-y-1.5">
+      {/* Status */}
+      <div className="mt-4 pt-4 border-t border-[#1f1f1f] px-2 space-y-1.5">
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" style={{boxShadow:'0 0 6px rgba(52,211,153,0.7)'}} />
           <span className="text-emerald-400 font-mono text-[11px]">Engine running</span>
         </div>
-        <div className="font-mono text-[10px] text-slate-600">localhost:9000</div>
-        <div className="font-mono text-[10px] text-slate-600">{runningCount}/{containerCount} containers up</div>
+        <div className="font-mono text-[10px] text-zinc-600">localhost:9000</div>
+        <div className="font-mono text-[10px] text-zinc-600">{runningCount}/{containerCount} containers up</div>
       </div>
     </aside>
   );
