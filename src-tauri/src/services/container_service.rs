@@ -58,6 +58,9 @@ pub fn stop_container(name: String) -> Result<String, String> {
 }
 
 pub fn remove_container(name: String) -> Result<String, String> {
+    // Stop the container first (ignore error if already stopped)
+    let _ = Command::new("docker").args(["stop", &name]).output();
+
     let output = Command::new("docker")
         .args(["rm", &name])
         .output()
@@ -69,7 +72,6 @@ pub fn remove_container(name: String) -> Result<String, String> {
         Err(String::from_utf8_lossy(&output.stderr).to_string())
     }
 }
-
 pub fn run_container(
     image: String,
     name: Option<String>,

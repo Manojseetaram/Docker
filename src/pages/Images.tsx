@@ -22,22 +22,22 @@ export default function Images() {
 
   // FIX: Docker removeImage needs the full image id (sha256:...) or repo:tag string
   // We pass img.id which is the full ID from the backend
-  const handleRemove = async (img: { id?: string; repository?: string; tag?: string }) => {
-    // Use full id if available, otherwise fall back to repo:tag
-    const target = img.id || `${img.repository}:${img.tag}`;
-    if (!target) return;
+const handleRemove = async (img: { repository?: string; tag?: string }) => {
+  if (!img.repository || !img.tag) return;
+  const fullName = `${img.repository}:${img.tag}`; // this is what Docker needs
 
-    setRemovingId(target);
-    setError(null);
-    try {
-      await removeImage(target);
-    } catch (e) {
-      console.error("Delete failed:", e);
-      setError(`Failed to delete image: ${target}`);
-    } finally {
-      setRemovingId(null);
-    }
-  };
+  setRemovingId(fullName);
+  setError(null);
+
+  try {
+    await removeImage(fullName); // call AppContext removeImage with full name
+  } catch (e) {
+    console.error("Delete failed:", e);
+    setError(`Failed to delete image: ${fullName}`);
+  } finally {
+    setRemovingId(null);
+  }
+};
 
   return (
     <>

@@ -58,14 +58,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // REFRESH
   // -------------------------
 
-  const refreshContainers = async () => {
-    try {
-      const data = await invoke<Container[]>("list_containers");
-      setContainers(data);
-    } catch (error) {
-      console.error("Failed to refresh containers:", error);
-    }
-  };
+ const refreshContainers = async () => {
+  try {
+    const data = await invoke<Container[]>("list_containers");
+
+    // Normalize status
+    const normalized = (data ?? []).map(c => ({
+      ...c,
+      status: c.status.startsWith("Up") ? "running" : "stopped",
+    }));
+
+    setContainers(normalized);
+  } catch (error) {
+    console.error("Failed to refresh containers:", error);
+  }
+};
 
 const refreshImages = async () => {
   try {
@@ -77,36 +84,40 @@ const refreshImages = async () => {
     console.error("Failed to refresh images:", error);
   }
 };
-  const startContainer = async (id: string) => {
-    try {
-      await invoke("start_container", { id });
-      await refreshContainers();
-    } catch (error) {
-      console.error("Failed to start container:", error);
-      throw error;
-    }
-  };
+const startContainer = async (name: string) => {
+  try {
+    const result = await invoke("start_container", { name });
+    console.log("Start container result:", result);
 
-  const stopContainer = async (id: string) => {
-    try {
-      await invoke("stop_container", { id });
-      await refreshContainers();
-    } catch (error) {
-      console.error("Failed to stop container:", error);
-      throw error;
-    }
-  };
+    const updated = await invoke<Container[]>("list_containers");
+    console.log("Containers after start:", updated); // ✅ log to see real status
+    setContainers(updated);
 
-  const removeContainer = async (id: string) => {
-    try {
-      await invoke("remove_container", { id });
-      await refreshContainers();
-    } catch (error) {
-      console.error("Failed to remove container:", error);
-      throw error;
-    }
-  };
+  } catch (error) {
+    console.error("startContainer error:", error);
+    throw error;
+  }
+};
 
+const stopContainer = async (name: string) => {
+  try {
+    const result = await invoke("stop_container", { name });
+    console.log("Stop container result:", result);
+    await refreshContainers();
+  } catch (error) {
+    console.error("stopContainer error:", error);
+    throw error;
+  }
+};
+const removeContainer = async (name: string) => {
+  try {
+    await invoke("remove_container", { name }); // key must be `name`
+    await refreshContainers();
+  } catch (error) {
+    console.error("Failed to remove container:", error);
+    throw error;
+  }
+};
   const runContainer = async (
     image: string,
     name?: string,
@@ -141,16 +152,15 @@ const refreshImages = async () => {
     }
   };
 
-  const removeImage = async (id: string) => {
-    try {
-      await invoke("remove_image", { id });
-      await refreshImages();
-    } catch (error) {
-      console.error("Failed to remove image:", error);
-      throw error;
-    }
-  };
-
+const removeImage = async (name: string) => {
+  try {
+    await invoke("remove_image", { name }); // pass `name`, not `id`
+    await refreshImages();
+  } catch (error) {
+    console.error("Failed to remove image:", error);
+    throw error;
+  }
+};
   const buildImage = async (path: string, tag: string) => {
     try {
       await invoke("build_image", { path, tag });

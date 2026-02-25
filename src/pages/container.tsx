@@ -22,24 +22,36 @@ export default function Containers() {
       return true;
     });
   }, [containers, filter, search]);
-
-  const handleToggle = async (id: string, status: string) => {
-    setLoadingId(id);
-    try {
-      status === "running" ? await stopContainer(id) : await startContainer(id);
-    } finally {
-      setLoadingId(null);
+const handleToggle = async (name: string, status: string) => {
+  setLoadingId(name);
+  try {
+    if (status === "running") {
+      await stopContainer(name);
+    } else {
+      await startContainer(name);
     }
-  };
-
-  const handleRemove = async (id: string) => {
-    setLoadingId(id);
-    try {
-      await removeContainer(id);
-    } finally {
-      setLoadingId(null);
+  } catch (err: any) {
+    console.error("Error starting/stopping container:", name);
+    console.error(err); // <-- full error object
+    if (err instanceof Error) {
+      console.error("Error message:", err.message);
     }
-  };
+    if ("payload" in err) {
+      console.error("Tauri payload:", err.payload);
+    }
+  } finally {
+    setLoadingId(null);
+  }
+};
+
+const handleRemove = async (name: string) => {
+  setLoadingId(name);
+  try {
+    await removeContainer(name);
+  } finally {
+    setLoadingId(null);
+  }
+};
 
   const running = containers.filter(c => c.status === "running").length;
 
@@ -133,58 +145,73 @@ export default function Containers() {
                   </td>
                 </tr>
               ) : (
-                visible.map((c, idx) => {
-                  const id = c.id ?? `row-${idx}`;
-                  const isLoading = loadingId === id;
-                  const isRunning = c.status === "running";
-                  return (
-                    <tr key={id}>
-                      <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{
-                            width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
-                            background: isRunning ? "#22c55e" : "#f59e0b",
-                            boxShadow: isRunning ? "0 0 5px rgba(34,197,94,0.5)" : "none",
-                          }} />
-                          <span style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>{c.name ?? "unnamed"}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="mono" style={{ fontSize: 12, color: "var(--text-3)" }}>{c.image ?? "—"}</span>
-                      </td>
-                      <td>
-                        <span className={`badge ${isRunning ? "badge-green" : "badge-yellow"}`}>
-                          ● {c.status ?? "unknown"}
-                        </span>
-                      </td>
-                      <td>
-                        <span className="mono" style={{ fontSize: 11, color: "var(--text-4)", background: "var(--surface-2)", padding: "2px 7px", borderRadius: 6 }}>
-                          {(c.id ?? "").slice(0, 12) || "—"}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
-                          <button
-                            className="btn btn-sm-ghost"
-                            disabled={isLoading}
-                            onClick={() => c.id && handleToggle(c.id, c.status ?? "")}
-                            style={{ color: isRunning ? "var(--yellow)" : "var(--green)", borderColor: isRunning ? "var(--yellow-border)" : "var(--green-border)" }}
-                          >
-                            {isLoading ? "…" : isRunning ? "Stop" : "Start"}
-                          </button>
-                          <button
-                            className="btn btn-danger"
-                            disabled={isLoading}
-                            onClick={() => c.id && handleRemove(c.id)}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
+              visible.map((c, idx) => {
+  const containerKey = c.id ?? `row-${idx}`;
+  const isRunning = c.status === "running";
+  const isLoading = loadingId === c.name; // ✅ compare with name, not id
+
+  return (
+    <tr key={containerKey}>
+      <td>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{
+            width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
+            background: isRunning ? "#22c55e" : "#f59e0b",
+            boxShadow: isRunning ? "0 0 5px rgba(34,197,94,0.5)" : "none",
+          }} />
+          <span style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>
+            {c.name ?? "unnamed"}
+          </span>
+        </div>
+      </td>
+      <td>
+        <span className="mono" style={{ fontSize: 12, color: "var(--text-3)" }}>
+          {c.image ?? "—"}
+        </span>
+      </td>
+      <td>
+        <span className={`badge ${isRunning ? "badge-green" : "badge-yellow"}`}>
+          ● {c.status ?? "unknown"}
+        </span>
+      </td>
+      <td>
+        <span className="mono" style={{
+          fontSize: 11,
+          color: "var(--text-4)",
+          background: "var(--surface-2)",
+          padding: "2px 7px",
+          borderRadius: 6
+        }}>
+          {(c.id ?? "").slice(0, 12) || "—"}
+        </span>
+      </td>
+      <td style={{ textAlign: "right" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
+          <button
+            className="btn btn-sm-ghost"
+            disabled={isLoading}
+            onClick={() => handleToggle(c.name ?? "", c.status ?? "")} // ✅ pass name
+            style={{
+              color: isRunning ? "var(--yellow)" : "var(--green)",
+              borderColor: isRunning ? "var(--yellow-border)" : "var(--green-border)"
+            }}
+          >
+            {isLoading ? "…" : isRunning ? "Stop" : "Start"}
+          </button>
+
+          <button
+            className="btn btn-danger"
+            disabled={isLoading}
+            onClick={() => handleRemove(c.name ?? "")} // ✅ pass name
+          >
+            Remove
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+})
+)}
             </tbody>
           </table>
         </div>
