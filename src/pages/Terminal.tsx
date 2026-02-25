@@ -1,22 +1,31 @@
 import { useState, useRef, useEffect } from "react";
 import { useApp } from "../store/AppContext";
+import { listen } from "@tauri-apps/api/event";
 
 type LineType = "prompt" | "output" | "error" | "info";
 interface Line { type: LineType; text: string; }
 
+const LINE_COLOR: Record<LineType, string> = {
+  prompt: "#60a5fa",
+  output: "#cbd5e1",
+  error:  "#f87171",
+  info:   "#475569",
+};
+
 export default function Terminal() {
-  const { containers, images, runContainer, pullImage } = useApp();
+const { containers: rawC, images: rawI, runContainer, pullImage, execIntoContainer } = useApp();
+  const containers = rawC ?? [];
+  const images = rawI ?? [];
 
   const [lines, setLines] = useState<Line[]>([
-    { type: "info",   text: "┌─────────────────────────────────────────┐" },
-    { type: "info",   text: "│  ManojDocker Engine v0.1.0              │" },
-    { type: "info",   text: "│  Connected to daemon at localhost:9000  │" },
-    { type: "info",   text: "└─────────────────────────────────────────┘" },
-    { type: "output", text: 'Type "help" to see available commands.' },
+    { type: "info",   text: "  ManojDocker Engine v0.1.0" },
+    { type: "info",   text: "  Connected to daemon at localhost:9000" },
+    { type: "output", text: '  Type "help" for available commands.' },
+    { type: "info",   text: "  ─────────────────────────────────────" },
   ]);
   const [input, setInput] = useState("");
   const [history, setHistory] = useState<string[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [histIdx, setHistIdx] = useState(-1);
   const [selectedContainer, setSelectedContainer] = useState(
     containers.find(c => c.status === "running")?.id ?? ""
   );
@@ -30,245 +39,228 @@ export default function Terminal() {
 
   useEffect(() => {
     if (containers.length > 0 && !selectedContainer) {
-      const running = containers.find(c => c.status === "running");
-      if (running) setSelectedContainer(running.id);
+      const r = containers.find(c => c.status === "running");
+      if (r) setSelectedContainer(r.id ?? "");
     }
   }, [containers]);
+useEffect(() => {
+  const unlisten = listen<string>("exec-output", (event) => {
+    push([
+      {
+        type: "output",
+        text: `  ${event.payload}`,
+      },
+    ]);
+  });
 
-  const addLines = (nl: Line[]) => setLines(prev => [...prev, ...nl]);
+  return () => {
+    unlisten.then(f => f());
+  };
+}, []);
+  const push = (newLines: Line[]) => setLines(prev => [...prev, ...newLines]);
 
-  const executeCommand = async (raw: string) => {
-    const trimmed = raw.trim();
-    if (!trimmed) return;
-    setHistory(prev => [trimmed, ...prev.slice(0, 49)]);
-    setHistoryIndex(-1);
+  const execute = async (raw: string) => {
+    const cmd = raw.trim();
+    if (!cmd) return;
+    setHistory(prev => [cmd, ...prev.slice(0, 49)]);
+    setHistIdx(-1);
 
-    const container = containers.find(c => c.id === selectedContainer);
-    const promptLine: Line = { type: "prompt", text: `[${container?.name || "engine"}] $ ${trimmed}` };
-    const [cmd, ...args] = trimmed.split(" ");
-    let output: Line[] = [];
+    const ctx = containers.find(c => c.id === selectedContainer);
+    push([{ type: "prompt", text: `[${ctx?.name ?? "engine"}] $ ${cmd}` }]);
 
-    switch (cmd) {
+    const [op, ...args] = cmd.split(" ");
+    let out: Line[] = [];
+
+    switch (op) {
       case "help":
-        output = [
+        out = [
           { type: "output", text: "  Available commands:" },
-          { type: "output", text: "  ─────────────────────────────────────────" },
-          { type: "output", text: "  ps               List all containers" },
-          { type: "output", text: "  images           List local images" },
-          { type: "output", text: "  run <img> [name] Run a new container" },
-          { type: "output", text: "  pull <img>       Pull an image" },
-          { type: "output", text: "  clear            Clear terminal" },
+          { type: "output", text: "  ──────────────────────────────────────────" },
+          { type: "output", text: "  ps                  List all containers" },
+          { type: "output", text: "  images              List local images" },
+          { type: "output", text: "  run <img> [name]    Create and start container" },
+          { type: "output", text: "  pull <img>          Pull image from registry" },
+          { type: "output", text: "  clear               Clear terminal output" },
         ];
         break;
+
       case "clear":
         setLines([]);
         return;
+
       case "ps":
-        output = containers.length
+        out = containers.length
           ? [
-              { type: "output", text: "  ID            NAME                  STATUS" },
+              { type: "output", text: "  CONTAINER ID  NAME                 STATUS" },
               { type: "output", text: "  ──────────────────────────────────────────" },
               ...containers.map(c => ({
                 type: "output" as LineType,
-                text: `  ${c.id.slice(0, 12)}  ${c.name.padEnd(20)}  ${c.status}`,
+                text: `  ${(c.id ?? "").slice(0, 12).padEnd(12)}  ${(c.name ?? "").padEnd(20)} ${c.status}`,
               })),
             ]
           : [{ type: "output", text: "  No containers found." }];
         break;
+
       case "images":
-        output = images.length
+        out = images.length
           ? [
-              { type: "output", text: "  REPOSITORY         TAG              SIZE" },
+              { type: "output", text: "  REPOSITORY            TAG             SIZE" },
               { type: "output", text: "  ──────────────────────────────────────────" },
               ...images.map(i => ({
                 type: "output" as LineType,
-                text: `  ${i.repository.padEnd(18)} ${i.tag.padEnd(16)} ${i.size}`,
+                text: `  ${(i.repository ?? "").padEnd(22)}${(i.tag ?? "").padEnd(16)}${i.size ?? ""}`,
               })),
             ]
           : [{ type: "output", text: "  No images found." }];
         break;
+
       case "run":
         if (!args[0]) {
-          output = [{ type: "error", text: "  Error: Usage: run <image> [container-name]" }];
+          out = [{ type: "error", text: "  Error: usage: run <image> [name]" }];
         } else {
           try {
-            await runContainer(args[0], args[1] || undefined);
-            output = [{ type: "output", text: `  ✓ Container created from ${args[0]}` }];
-          } catch (error) {
-            output = [{ type: "error", text: `  Error: Failed to run container: ${error}` }];
+            await runContainer(args[0], args[1]);
+            out = [{ type: "output", text: `  ✓ Container started from ${args[0]}` }];
+          } catch (e) {
+            out = [{ type: "error", text: `  Error: ${e}` }];
           }
         }
         break;
+case "exec":
+  if (!selectedContainer) {
+    out = [{ type: "error", text: "  No container selected." }];
+  } else if (!args.length) {
+    out = [{ type: "error", text: "  usage: exec <command>" }];
+  } else {
+    try {
+      // Display the command prompt
+      push([{ type: "prompt", text: `[${ctx?.name ?? "engine"}] $ ${cmd}` }]);
+      // Run the command — output will come via exec-output events
+      execIntoContainer(selectedContainer, args.join(" "));
+      out = []; // don't add anything here
+    } catch (e) {
+      out = [{ type: "error", text: `  Error: ${e}` }];
+    }
+  }
+  break;
       case "pull":
         if (!args[0]) {
-          output = [{ type: "error", text: "  Error: Usage: pull <image>" }];
+          out = [{ type: "error", text: "  Error: usage: pull <image[:tag]>" }];
         } else {
           try {
             const [repo, tag = "latest"] = args[0].includes(":") ? args[0].split(":") : [args[0], "latest"];
             await pullImage(repo, tag);
-            output = [{ type: "output", text: `  ✓ Successfully pulled ${args[0]}` }];
-          } catch (error) {
-            output = [{ type: "error", text: `  Error: Failed to pull image: ${error}` }];
+            out = [{ type: "output", text: `  ✓ Pulled ${args[0]}` }];
+          } catch (e) {
+            out = [{ type: "error", text: `  Error: ${e}` }];
           }
         }
         break;
+
       default:
-        output = [{ type: "error", text: `  bash: command not found: ${cmd}. Type 'help' for commands.` }];
+        out = [{ type: "error", text: `  bash: ${op}: command not found. Type 'help' for commands.` }];
     }
 
-    addLines([promptLine, ...output]);
+    push(out);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") { executeCommand(input); setInput(""); }
+  const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") { execute(input); setInput(""); }
     else if (e.key === "ArrowUp") {
       e.preventDefault();
-      if (historyIndex < history.length - 1) {
-        const i = historyIndex + 1;
-        setHistoryIndex(i); setInput(history[i]);
-      }
+      if (histIdx < history.length - 1) { const i = histIdx + 1; setHistIdx(i); setInput(history[i]); }
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      if (historyIndex > 0) {
-        const i = historyIndex - 1;
-        setHistoryIndex(i); setInput(history[i]);
-      } else if (historyIndex === 0) {
-        setHistoryIndex(-1); setInput("");
-      }
+      if (histIdx > 0) { const i = histIdx - 1; setHistIdx(i); setInput(history[i]); }
+      else if (histIdx === 0) { setHistIdx(-1); setInput(""); }
     }
   };
 
-  const selectedContainerName = containers.find(c => c.id === selectedContainer)?.name || "engine";
+  const ctxName = containers.find(c => c.id === selectedContainer)?.name ?? "engine";
 
   return (
-    <div className="h-full flex flex-col max-w-5xl">
+    <div style={{ maxWidth: 900, height: "calc(100vh - 64px)", display: "flex", flexDirection: "column" }}>
       {/* Header */}
-      <div className="mb-5 flex justify-between items-start">
+      <div className="page-header" style={{ marginBottom: 20 }}>
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span
-              className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full"
-              style={{ background: "#0f172a", color: "#60a5fa" }}
-            >
-              TERMINAL
-            </span>
-          </div>
-          <h1
-            className="text-[28px] font-black text-black tracking-tight leading-none"
-            style={{ fontFamily: "Syne, sans-serif" }}
-          >
-            Terminal
-          </h1>
-          <p className="text-[12px] font-mono mt-1.5" style={{ color: "#93c5fd" }}>
-            Interactive docker shell · {selectedContainerName}
-          </p>
+          <h1 className="page-title">Terminal</h1>
+          <p className="page-sub">Interactive shell · {ctxName}</p>
         </div>
         <select
+          className="input"
+          style={{ width: "auto", minWidth: 200 }}
           value={selectedContainer}
           onChange={e => setSelectedContainer(e.target.value)}
-          className="rounded-xl px-4 py-2.5 text-black font-mono text-[12px] focus:outline-none transition-all"
-          style={{ background: "white", border: "1.5px solid #dbeafe" }}
-          onFocus={e => (e.target as HTMLSelectElement).style.borderColor = "#2563eb"}
-          onBlur={e => (e.target as HTMLSelectElement).style.borderColor = "#dbeafe"}
         >
           <option value="">engine (host)</option>
           {containers.filter(c => c.status === "running").map(c => (
-            <option key={c.id} value={c.id}>{c.name} (container)</option>
+            <option key={c.id} value={c.id ?? ""}>{c.name} (container)</option>
           ))}
         </select>
       </div>
 
-      {/* Terminal window */}
-      <div
-        className="flex-1 flex flex-col rounded-2xl overflow-hidden"
-        style={{ border: "1px solid #e8f0fe", boxShadow: "0 1px 20px rgba(37,99,235,0.05)" }}
-      >
+      {/* Terminal */}
+      <div style={{
+        flex: 1, borderRadius: "var(--radius-lg)", overflow: "hidden",
+        border: "1px solid var(--border)", display: "flex", flexDirection: "column", minHeight: 0,
+      }}>
         {/* Titlebar */}
-        <div
-          className="flex items-center justify-between px-5 py-3"
-          style={{ background: "#0a1020", borderBottom: "1px solid #1e293b" }}
-        >
-          <div className="flex items-center gap-2">
-            <div className="flex gap-1.5">
-              <span className="w-3 h-3 rounded-full" style={{ background: "#ef4444" }} />
-              <span className="w-3 h-3 rounded-full" style={{ background: "#fbbf24" }} />
-              <span className="w-3 h-3 rounded-full" style={{ background: "#22c55e" }} />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", background: "#1e293b", borderBottom: "1px solid #334155" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", gap: 6 }}>
+              {["#ef4444", "#f59e0b", "#22c55e"].map(c => (
+                <span key={c} style={{ width: 11, height: 11, borderRadius: "50%", background: c, opacity: 0.8 }} />
+              ))}
             </div>
-            <span className="font-mono text-[11px] ml-3" style={{ color: "#334155" }}>
-              bash — {selectedContainerName}
-            </span>
+            <span className="mono" style={{ fontSize: 11, color: "#64748b" }}>bash — {ctxName}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#22c55e", boxShadow: "0 0 5px rgba(34,197,94,0.7)" }} />
-            <span className="font-mono text-[10px]" style={{ color: "#22c55e" }}>connected</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 6px rgba(34,197,94,0.8)" }} />
+            <span className="mono" style={{ fontSize: 10, color: "#22c55e" }}>connected</span>
           </div>
         </div>
 
         {/* Output */}
         <div
           ref={bodyRef}
-          className="flex-1 p-5 overflow-y-auto cursor-text"
-          style={{ background: "#0f172a" }}
+          style={{ flex: 1, overflowY: "auto", padding: "14px 18px", background: "#0f172a", cursor: "text", minHeight: 0 }}
           onClick={() => inputRef.current?.focus()}
         >
           {lines.map((line, i) => (
-            <div
-              key={i}
-              className="mb-0.5 leading-relaxed text-[12.5px] font-mono"
-              style={{
-                color:
-                  line.type === "prompt" ? "#60a5fa"
-                  : line.type === "error"  ? "#f87171"
-                  : line.type === "info"   ? "#334155"
-                  : "#cbd5e1",
-                fontWeight: line.type === "prompt" ? "700" : "400",
-              }}
-            >
+            <div key={i} className="mono" style={{ fontSize: 12.5, lineHeight: 1.75, color: LINE_COLOR[line.type], fontWeight: line.type === "prompt" ? 600 : 400 }}>
               {line.text}
             </div>
           ))}
-          {/* Blinking cursor line */}
-          <div className="flex items-center gap-0 mt-1">
-            <span className="text-[12.5px] font-mono font-bold" style={{ color: "#60a5fa" }}>
-              [{selectedContainerName}] $&nbsp;
-            </span>
-            <span className="animate-pulse text-[12.5px] font-mono" style={{ color: "#60a5fa" }}>█</span>
-          </div>
         </div>
 
         {/* Input */}
-        <div
-          className="flex items-center px-5 py-3.5 gap-3"
-          style={{
-            background: "#0a1020",
-            borderTop: "1px solid #1e293b",
-          }}
-        >
-          <span className="font-mono font-black text-[12.5px] flex-shrink-0" style={{ color: "#60a5fa" }}>
-            [{selectedContainerName}] $
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10,
+          padding: "10px 16px",
+          background: "#0a1020",
+          borderTop: "1px solid #1e293b",
+        }}>
+          <span className="mono" style={{ fontSize: 12.5, fontWeight: 700, color: "#60a5fa", flexShrink: 0 }}>
+            [{ctxName}] $
           </span>
           <input
             ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent outline-none font-mono text-[12.5px]"
-            style={{ color: "#e2e8f0", caretColor: "#60a5fa" }}
-            placeholder="Type a command…"
+            onKeyDown={onKey}
             autoFocus
             spellCheck={false}
             autoComplete="off"
+            placeholder="Type a command…"
+            className="mono"
+            style={{
+              flex: 1, background: "transparent", border: "none", outline: "none",
+              fontSize: 12.5, color: "#e2e8f0", caretColor: "#60a5fa",
+            }}
           />
-          <button
-            onClick={() => { executeCommand(input); setInput(""); }}
-            disabled={!input.trim()}
-            className="font-mono text-[10px] px-2.5 py-1 rounded-lg transition-all disabled:opacity-30"
-            style={{ border: "1px solid #1e293b", color: "#475569" }}
-          >
-            ↵
-          </button>
         </div>
       </div>
     </div>
   );
 }
+

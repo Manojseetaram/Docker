@@ -10,7 +10,7 @@ pub async fn stream_logs(
     let mut child = Command::new("docker")
         .args(["logs", "-f", &container])
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stderr(Stdio::inherit())
         .spawn()
         .map_err(|e| e.to_string())?;
 

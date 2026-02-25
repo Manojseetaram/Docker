@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 export interface Container {
   id: string;
@@ -66,15 +67,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const refreshImages = async () => {
-    try {
-      const data = await invoke<Image[]>("list_images");
-      setImages(data);
-    } catch (error) {
-      console.error("Failed to refresh images:", error);
-    }
-  };
+ const refreshImages = async () => {
+  try {
+    const data = await invoke<any[]>("list_images"); // temporarily use any[]
+    
+    // Normalize to what your Terminal expects
+    const imagesNormalized = data.map(img => {
+      // If backend returns "IMAGE" like "nginx:latest"
+      const [repository, tag = "latest"] = (img.IMAGE || img.repository || "").split(":");
+      const size = img["CONTENT SIZE"] || img.size || "";
+      return { id: img.ID || img.id || "", repository, tag, size };
+    });
 
+    console.log("IMAGES NORMALIZED:", imagesNormalized);
+
+    setImages(imagesNormalized);
+  } catch (error) {
+    console.error("Failed to refresh images:", error);
+  }
+};
   // -------------------------
   // CONTAINERS
   // -------------------------
@@ -167,33 +178,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // TERMINAL
   // -------------------------
 
-  const execIntoContainer = async (id: string, cmd: string) => {
-    try {
-      const output = await invoke<string>("exec_into_container", { id, cmd });
-      return output;
-    } catch (error) {
-      console.error("Failed to exec into container:", error);
-      throw error;
-    }
-  };
-
+const execIntoContainer = async (id: string, cmd: string): Promise<string> => {
+  try {
+    const output = await invoke<string>("exec_into_container", {
+      container: id,
+      command: cmd,
+    });
+    return output; // TypeScript now knows this is string
+  } catch (error) {
+    console.error("Failed to exec into container:", error);
+    throw error;
+  }
+};
   // -------------------------
   // LOGS
   // -------------------------
 
-  const streamLogs = async (id: string) => {
-    try {
-      const output = await invoke<string>("stream_logs", { id });
-      const lines = output.split("\n").map((line) => ({
-        time: new Date().toLocaleTimeString(),
-        message: line,
-      }));
-      setLogs(lines);
-    } catch (error) {
-      console.error("Failed to stream logs:", error);
-      setLogs([{ time: new Date().toLocaleTimeString(), message: "Failed to fetch logs" }]);
-    }
-  };
+const streamLogs = async (id: string) => {
+  try {
+    // Clear previous logs
+    setLogs([]);
+
+    // Listen to streaming logs
+    await listen<string>("container-log", (event) => {
+      setLogs((prev) => [
+        ...prev,
+        {
+          time: new Date().toLocaleTimeString(),
+          message: event.payload,
+        },
+      ]);
+    });
+
+    // Start streaming
+    await invoke("stream_logs", { container: id });
+
+  } catch (error) {
+    console.error("Failed to stream logs:", error);
+  }
+};
 
   useEffect(() => {
     refreshContainers();
