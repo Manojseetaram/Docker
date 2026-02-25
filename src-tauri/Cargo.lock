@@ -751,12 +751,14 @@ dependencies = [
 name = "docker"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "rusqlite",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-opener",
+ "thiserror 1.0.69",
  "tokio",
  "uuid",
 ]
