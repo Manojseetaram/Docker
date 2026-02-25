@@ -3,7 +3,7 @@ use crate::models::image::Image;
 
 pub fn list_images() -> Result<Vec<Image>, String> {
     let output = Command::new("docker")
-        .args(["images", "--format", "{{.ID}}|{{.Repository}}|{{.Tag}}"])
+        .args(["images", "--format", "{{.ID}}|{{.Repository}}|{{.Tag}}|{{.Size}}"])
         .output()
         .map_err(|e| e.to_string())?;
 
@@ -18,16 +18,16 @@ pub fn list_images() -> Result<Vec<Image>, String> {
         .map(|line| {
             let parts: Vec<&str> = line.split('|').collect();
             Image {
-                id: parts[0].to_string(),
-                name: parts[1].to_string(),
-                tag: parts[2].to_string(),
+                id: parts.get(0).unwrap_or(&"").to_string(),
+                repository: parts.get(1).unwrap_or(&"").to_string(),
+                tag: parts.get(2).unwrap_or(&"").to_string(),
+                size: parts.get(3).unwrap_or(&"").to_string(),
             }
         })
         .collect();
 
     Ok(images)
 }
-
 pub fn pull_image(name: String, tag: String) -> Result<String, String> {
     let full_image = format!("{}:{}", name, tag);
 

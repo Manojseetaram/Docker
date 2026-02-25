@@ -8,13 +8,13 @@ import Logs from "./pages/Logs";
 import Terminal from "./pages/Terminal";
 import Containers from "./pages/container";
 
-
 export type Page = "dashboard" | "containers" | "images" | "logs" | "terminal";
 
 function AppShell() {
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
   const { containers } = useApp();
-  const running = (containers ?? []).filter(c => c.status === "running").length;
+  const safeContainers = containers ?? [];
+  const running = safeContainers.filter(c => c?.status === "running").length;
 
   const renderPage = () => {
     switch (currentPage) {
@@ -28,14 +28,14 @@ function AppShell() {
   };
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg)" }}>
+    <div className="app-shell">
       <Sidebar
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
-        containerCount={(containers ?? []).length}
+        containerCount={safeContainers.length}
         runningCount={running}
       />
-      <main style={{ flex: 1, overflowY: "auto", padding: "32px" }}>
+      <main className="app-main">
         {renderPage()}
       </main>
     </div>

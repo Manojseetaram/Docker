@@ -67,29 +67,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
- const refreshImages = async () => {
+const refreshImages = async () => {
   try {
-    const data = await invoke<any[]>("list_images"); // temporarily use any[]
-    
-    // Normalize to what your Terminal expects
-    const imagesNormalized = data.map(img => {
-      // If backend returns "IMAGE" like "nginx:latest"
-      const [repository, tag = "latest"] = (img.IMAGE || img.repository || "").split(":");
-      const size = img["CONTENT SIZE"] || img.size || "";
-      return { id: img.ID || img.id || "", repository, tag, size };
-    });
-
-    console.log("IMAGES NORMALIZED:", imagesNormalized);
-
-    setImages(imagesNormalized);
+    // The backend now returns JSON, so no need for string parsing
+    const data = await invoke<Image[]>("list_images");
+    console.log("IMAGES FROM BACKEND:", data);
+    setImages(data ?? []);
   } catch (error) {
     console.error("Failed to refresh images:", error);
   }
 };
-  // -------------------------
-  // CONTAINERS
-  // -------------------------
-
   const startContainer = async (id: string) => {
     try {
       await invoke("start_container", { id });

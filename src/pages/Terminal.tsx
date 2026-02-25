@@ -101,18 +101,18 @@ useEffect(() => {
           : [{ type: "output", text: "  No containers found." }];
         break;
 
-      case "images":
-        out = images.length
-          ? [
-              { type: "output", text: "  REPOSITORY            TAG             SIZE" },
-              { type: "output", text: "  ──────────────────────────────────────────" },
-              ...images.map(i => ({
-                type: "output" as LineType,
-                text: `  ${(i.repository ?? "").padEnd(22)}${(i.tag ?? "").padEnd(16)}${i.size ?? ""}`,
-              })),
-            ]
-          : [{ type: "output", text: "  No images found." }];
-        break;
+case "images":
+  out = images.length
+    ? [
+        { type: "output", text: "  REPOSITORY            TAG             SIZE" },
+        { type: "output", text: "  ──────────────────────────────────────────" },
+        ...images.map(i => ({
+          type: "output" as LineType,
+          text: `  ${i.repository.padEnd(22)}${i.tag.padEnd(16)}${i.size}`,
+        })),
+      ]
+    : [{ type: "output", text: "  No images found." }];
+  break;
 
       case "run":
         if (!args[0]) {

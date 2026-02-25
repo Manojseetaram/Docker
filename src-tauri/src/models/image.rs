@@ -1,8 +1,9 @@
-use serde::{Serialize, Deserialize};
+use serde::Serialize;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize)]
 pub struct Image {
     pub id: String,
-    pub name: String,
+    pub repository: String,
     pub tag: String,
+    pub size: String,
 }
