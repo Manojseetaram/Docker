@@ -261,6 +261,7 @@ html, body, #root {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  margin-bottom: 10px;
 }
 
 .page-title-block {
@@ -295,6 +296,7 @@ html, body, #root {
   color: var(--text-black);
   line-height: 1.1;
   letter-spacing: -0.5px;
+  margin-bottom: 10px;
 }
 
 .page-subtitle {
@@ -334,7 +336,7 @@ html, body, #root {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 16px;
+  padding: 6px 16px;
   border-radius: var(--radius-md);
   background: white;
   color: var(--text-black);

@@ -46,14 +46,14 @@ export default function Sidebar({ currentPage, setCurrentPage, containerCount, r
           </svg>
         </div>
         <div>
-          <div className="sidebar-logo-name">ManojDocker</div>
-          <div className="sidebar-logo-version">v0.1.0-alpha</div>
+          <div className="sidebar-logo-name">Docker</div>
+         
         </div>
       </div>
 
       <div className="sidebar-section-label">Navigation</div>
 
-      <nav style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1 }}>
+      <nav style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 1 }}>
         {navItems.map(item => {
           const active = currentPage === item.id;
           return (
@@ -77,7 +77,7 @@ export default function Sidebar({ currentPage, setCurrentPage, containerCount, r
           <span className="status-dot" />
           Engine running
         </div>
-        <div className="status-sub">localhost:9000</div>
+        
         <div className="status-sub">{runningCount}/{containerCount} containers up</div>
       </div>
     </aside>

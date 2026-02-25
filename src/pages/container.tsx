@@ -188,11 +188,11 @@ const handleRemove = async (name: string) => {
       <td style={{ textAlign: "right" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
           <button
-            className="btn btn-sm-ghost"
+            className="btn-ghost"
             disabled={isLoading}
             onClick={() => handleToggle(c.name ?? "", c.status ?? "")} // ✅ pass name
             style={{
-              color: isRunning ? "var(--yellow)" : "var(--green)",
+              color: isRunning ? "red" : "green",
               borderColor: isRunning ? "var(--yellow-border)" : "var(--green-border)"
             }}
           >

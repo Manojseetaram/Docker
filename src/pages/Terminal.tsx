@@ -18,8 +18,7 @@ const { containers: rawC, images: rawI, runContainer, pullImage, execIntoContain
   const images = rawI ?? [];
 
   const [lines, setLines] = useState<Line[]>([
-    { type: "info",   text: "  ManojDocker Engine v0.1.0" },
-    { type: "info",   text: "  Connected to daemon at localhost:9000" },
+    
     { type: "output", text: '  Type "help" for available commands.' },
     { type: "info",   text: "  ─────────────────────────────────────" },
   ]);

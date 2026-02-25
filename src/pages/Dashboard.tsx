@@ -34,7 +34,7 @@ export default function Dashboard() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Dashboard</h1>
-          <p className="page-sub">manoj-docker · localhost:9000</p>
+         
         </div>
         <button
           className="btn btn-ghost"
@@ -50,13 +50,13 @@ export default function Dashboard() {
         <StatCard label="Total" value={stats.total} sub={`${stats.running} active`} color="var(--blue)"
           icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>}
         />
-        <StatCard label="Running" value={stats.running} sub="Active" color="#16a34a"
+        <StatCard label="Running" value={stats.running} sub="Active" color="var(--blue)"
           icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
         />
-        <StatCard label="Stopped" value={stats.stopped} sub="Idle" color="#d97706"
+        <StatCard label="Stopped" value={stats.stopped} sub="Idle" color="var(--blue)"
           icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg>}
         />
-        <StatCard label="Images" value={stats.images} sub="Locally cached" color="#7c3aed"
+        <StatCard label="Images" value={stats.images} sub="Locally cached" color="var(--blue)"
           icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>}
         />
       </div>
