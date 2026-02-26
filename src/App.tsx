@@ -6,7 +6,8 @@ import Dashboard from "./pages/Dashboard";
 import Images from "./pages/Images";
 import Logs from "./pages/Logs";
 import Terminal from "./pages/Terminal";
-import Containers from "./pages/container";
+import Containers from "./pages/Container-doc";
+
 
 export type Page = "dashboard" | "containers" | "images" | "logs" | "terminal";
 

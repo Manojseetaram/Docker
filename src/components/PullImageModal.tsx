@@ -32,6 +32,7 @@ export default function PullImageModal({ onClose }: Props) {
         }
       };
       const [_, result] = await Promise.all([tick(), pullImage(repo, tag)]);
+      console.log(result)
       setProgress(100);
       await new Promise(r => setTimeout(r, 500));
       onClose();

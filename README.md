@@ -2,4 +2,4 @@
     
     pnpm create tauri-app
 
-2.
+2.<img src="/docker-container.png" width="400">
